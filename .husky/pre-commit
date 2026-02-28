@@ -19,4 +19,7 @@
 ## or put your custom commands -------------------
 #echo 'Husky.Net is awesome!'
 
-dotnet format
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep '\.cs$')
+if [ -n "$STAGED_FILES" ]; then
+  echo "$STAGED_FILES" | xargs dotnet format --include
+fi
