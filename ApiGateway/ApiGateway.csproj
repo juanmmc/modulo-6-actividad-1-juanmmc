@@ -15,4 +15,12 @@
     <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EditorConfigFiles Remove="C:\Users\PC\Documents\Git\microservicios\modulo-6-actividad-1-juanmmc\ApiGateway\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="C:\Users\PC\Documents\Git\microservicios\modulo-6-actividad-1-juanmmc\ApiGateway\.editorconfig" />
+  </ItemGroup>
+
 </Project>

@@ -5,27 +5,63 @@ API Gateway construido con .NET 8 y YARP (Yet Another Reverse Proxy) que proporc
 ## 🚀 Características
 
 - **Autenticación JWT** con Keycloak
+- **Generación dinámica** de rutas/clusters vía código (sin `ReverseProxy` en `appsettings.json`).
 - **Proxy reverso** con YARP
 - **Contenedorización** con Docker
+- **Políticas** de autorización reutilizables (`AuthPolicies`).
+- **Listo para ampliarse** con nuevos microservicios.
 
 ## 📋 Requisitos Previos
 
 - [Docker](https://www.docker.com/get-started) (versión 20.10 o superior)
 - [Docker Compose](https://docs.docker.com/compose/install/) (versión 2.0 o superior)
 
-## 🏗️ Estructura del Proyecto
+## 📁 Estructura
 
 ```bash
 modulo-6-actividad-1-juanmmc/
- ├── ApiGateway/ 
- │   ├── Dockerfile 
- │   ├── Program.cs 
- │   ├── appsettings.json 
- │   └── ApiGateway.csproj 
+ ├── ApiGateway/
+ │   ├── Configuration/
+ │   │   ├── MicroserviceConfig.cs
+ │   │   ├── MicroserviceRoute.cs
+ │   │   ├── MicroserviceRegistry.cs
+ │   │   ├── ReverseProxyConfigBuilder.cs
+ │   │   └── Microservices/
+ │   │       ├── KeycloakConfig.cs
+ │   │       └── LogisticsConfig.cs
+ │   ├── Security/AuthPolicies.cs
+ │   ├── Program.cs
+ │   ├── appsettings.json
+ │   └── Dockerfile
  └── docker-compose.yml
 ```
 
-## 🔧 Configuración
+## ⚙️ Configuración dinámica
+
+1. `MicroserviceConfig` define nombre, cluster, base URL y rutas.
+2. Cada microservicio implementa su clase (`LogisticsConfig`, `KeycloakConfig`, etc.).
+3. `MicroserviceRegistry` registra las configuraciones.
+4. `ReverseProxyConfigBuilder` recorre el registro y genera la sección `ReverseProxy` en memoria.
+5. `Program.cs` llama al builder antes de `AddReverseProxy()`.
+
+Para agregar otro microservicio:
+1. Crear `Configuration/Microservices/NuevoServicioConfig.cs` heredando de `MicroserviceConfig`.
+2. Definir rutas y políticas usando `AuthPolicies`.
+3. Registrar la clase en `MicroserviceRegistry`.
+4. Reiniciar el gateway.
+
+## 🔐 Autenticación y Políticas
+
+```bash
+| Política           | Roles requeridos          | Descripción                    |
+|--------------------|---------------------------|--------------------------------|
+| `Authenticated`    | Usuario autenticado       | Acceso básico autenticado      |
+| `AdminOnly`        | `admin`                   | Operaciones administrativas    |
+| `DriverOnly`       | `driver`                  | Funciones del conductor        |
+| `LogisticsAccess`  | `logistics`, `admin`      | Lecturas del dominio logística |
+```
+
+`AuthPolicies.Register(options)` se invoca en `Program.cs` para registrar todas las políticas en ASP.NET Core.
 
 ### Keycloak
 
@@ -34,14 +70,19 @@ El API Gateway está configurado para autenticarse contra un servidor Keycloak e
 - **URL**: `http://154.38.180.80:8080`
 - **Realm**: `group3realm`
 
-### Rutas Disponibles
-
-```bash
-| Ruta          | Método | Autenticación | Destino                    |
-|---------------|--------|---------------|----------------------------|
-| `/api/login`  | POST   | No            | Keycloak Token Endpoint    |
-| `/api/*`      | GET    | Sí            | JSONPlaceholder API (demo) |
+## 🔧 Configuración mínima (`appsettings.json`)
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*"
+}
 ```
+Todo el bloque `ReverseProxy` se genera en tiempo de ejecución. Agregar o modificar microservicios solo requiere tocar su clase de configuración y el registro.
 
 ## 🐳 Ejecutar con Docker Compose
 
@@ -91,7 +132,7 @@ Una vez iniciado el contenedor, el API Gateway estará disponible en: http://loc
 ### Endpoints de prueba:
 
 - **Login**: `http://localhost:5000/api/login`
-- **Users**: `http://localhost:5000/api/users` (requiere token)
+- **Users**: `http://localhost:5000/api/logout` (requiere token)
 - **Posts**: `http://localhost:5000/api/posts` (requiere token)
 
 ## 🔐 Autenticación (Keycloak)
@@ -132,22 +173,14 @@ Invoke-WebRequest -Uri "http://localhost:5000/api/login" `
 ### Usar el Token
 
 ```bash
-curl -X GET http://localhost:5000/api/posts 
+curl -X GET http://localhost:5000/logistics/api/Driver/getDriver
   -H "Authorization: Bearer eyJhbGci..."
 ```
 
 O también de la siguiente manera en PowerShell de Windows:
 
 ```bash
-Invoke-WebRequest -Uri "http://localhost:5000/api/posts" `
+Invoke-WebRequest -Uri "http://localhost:5000/logistics/api/Driver/getDriver" `
   -Method GET `
   -Headers @{"Authorization"="Bearer eyJhbGci..."}
-```
-
-## 📝 Políticas de Autorización
-
-```bash
-| Política        | Roles Requeridos | Descripción         |
-|-----------------|------------------|---------------------|
-| `Authenticated` | Cualquiera       | Usuario autenticado |
 ```

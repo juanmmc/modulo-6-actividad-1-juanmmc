@@ -1,3 +1,5 @@
+using ApiGateway.Configuration;
+using ApiGateway.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Yarp.ReverseProxy;
@@ -52,25 +54,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// Configurar políticas de autorización detalladas
-builder.Services.AddAuthorization(options =>
-{
-    // Solo administradores
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole("admin"));
+// Configurar polÃ­ticas de autorizaciÃ³n detalladas
+builder.Services.AddAuthorization(options => AuthPolicies.Register(options));
 
-    // Solo conductores
-    options.AddPolicy("DriverOnly", policy =>
-        policy.RequireRole("driver"));
-
-    // Conductores y admins
-    options.AddPolicy("LogisticsAccess", policy =>
-        policy.RequireRole("driver", "admin"));
-
-    // Cualquier usuario autenticado
-    options.AddPolicy("Authenticated", policy =>
-        policy.RequireAuthenticatedUser());
-});
+var registry = new MicroserviceRegistry();
+ReverseProxyConfigBuilder.ConfigureMicroserviceRoutes(builder.Configuration, registry);
 
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
