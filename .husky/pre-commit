@@ -19,6 +19,7 @@
 ## or put your custom commands -------------------
 #echo 'Husky.Net is awesome!'
 
+
 # Obtener archivos .cs staged
 STAGED_CS_FILES=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.cs$' || true)
 
